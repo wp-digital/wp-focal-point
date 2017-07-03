@@ -57,8 +57,14 @@
         var $selector = $('#focal-selector-' + id);
         var $previews = $('#focal-previews');
 
-        api.id = id;
         api.$spinner = $('#focal-spinner');
+
+        if (api.id === id) {
+            api.$spinner.addClass('is-active');
+        } else {
+            api.id = id;
+        }
+
         api.$field = $('#attachments-' + id + '-focal-center');
         api.cursorPos = api.$field.val().split(',').map(function(i){return parseFloat(i);});
 
@@ -83,10 +89,6 @@
                 });
             })
         };
-
-        if (api.processing.indexOf(api.id) !== -1) {
-            api.$spinner.addClass('is-active');
-        }
 
         updateCursorPos(api.cursorPos[0], api.cursorPos[1]);
 
@@ -114,7 +116,6 @@
     api.$field = null;
     api.$spinner = null;
     api.cursorPos = [0, 0];
-    api.processing = [];
     api.heartbeat = '';
 
     $document.on('mouseup', function () {
@@ -124,17 +125,14 @@
                 clearTimeout(api.saveTimer);
             }
             api.saveTimer = setTimeout(function() {
-                if (api.id && api.processing.indexOf(api.id) === -1) {
-                    api.processing.push(api.id);
-                }
                 if (api.$spinner) {
                     api.$spinner.addClass('is-active');
                 }
                 if (api.$field) {
                     api.$field.val(api.cursorPos.join(',')).change();
                 }
-                wp.heartbeat.interval('fast');
                 api.heartbeat = 'refresh';
+                wp.heartbeat.interval('fast');
             }, 800);
         }
     });
@@ -151,12 +149,11 @@
                 $.each(data.focal_processed, function (index, data) {
                     var $editorImg;
                     var editorImgSrc;
-                    var processing = api.processing.indexOf(data.id);
 
                     wp.media.attachment(data.id).set(data);
 
-                    if (processing !== -1) {
-                        api.processing.splice(processing, 1);
+                    if (api.id === data.id) {
+                        api.id = 0;
                     }
 
                     if (typeof tinymce !== 'undefined' && tinymce.activeEditor && data.meta) {
@@ -170,12 +167,11 @@
                         }
                     }
                 });
-                api.id = 0;
                 if (api.$spinner) {
                     api.$spinner.removeClass('is-active');
                 }
                 api.heartbeat = '';
-            }, 1000, data);
+            }, 4000, data);
         }
     });
 
