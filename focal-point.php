@@ -3,7 +3,7 @@
  * Plugin Name: Thumbnails Focal Point
  */
 
-define( 'FOCAL_POINT_VERSION', '2.0.3' );
+define( 'FOCAL_POINT_VERSION', '2.0.4' );
 
 add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
     if( empty( $form_fields ) ) {
@@ -11,6 +11,10 @@ add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
     }
 
     list( $src, $w, $h ) = wp_get_attachment_image_src( $post->ID, 'medium' );
+
+    if ( !$w || !$h ) {
+        return $form_fields;
+    }
 
     $selector = "<div class=\"focal-point-selector\">
                     <img style=\"display: none\" src=\"{$src}\" alt=\"\" />
@@ -199,8 +203,12 @@ add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
         $form_fields = [];
     }
 
-    $attachment_sizes = wp_get_attachment_metadata( $post->ID )['sizes'];
-    list( $src, $w, $h ) = wp_get_attachment_image_src( $post->ID, isset( $attachment_sizes['medium'] ) ? 'medium' : '' );
+    list( $src, $w, $h ) = wp_get_attachment_image_src( $post->ID, 'medium' );
+
+    if ( !$w || !$h ) {
+        return $form_fields;
+    }
+
     $src_ratio = $w / $h;
 
     $preview_height = 100;
@@ -208,6 +216,9 @@ add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
 
     $duplicates = [];
     $allowed = apply_filters( 'focal_previews_sizes', [] );
+
+    $metadata = wp_get_attachment_metadata( $post->ID );
+    $attachment_sizes = isset( $metadata['sizes'] ) ? $metadata['sizes'] : [];
 
     global $_wp_additional_image_sizes;
     foreach( $allowed as $size ) {
