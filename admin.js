@@ -145,33 +145,31 @@
 
     $document.on('heartbeat-tick', function (event, data) {
         if (data.focal_processed && $.isArray(data.focal_processed)) {
-            setTimeout(function (data) {
-                $.each(data.focal_processed, function (index, data) {
-                    var $editorImg;
-                    var editorImgSrc;
+            $.each(data.focal_processed, function (index, data) {
+                var $editorImg;
+                var editorImgSrc;
 
-                    wp.media.attachment(data.id).set(data);
+                wp.media.attachment(data.id).set(data);
 
-                    if (api.id === data.id) {
-                        api.id = 0;
-                    }
-
-                    if (typeof tinymce !== 'undefined' && tinymce.activeEditor && data.meta) {
-                        $editorImg = tinymce.activeEditor.$('img[src^="' + data.url.replace(/\.[^.]+$/, '') + '"]');
-
-                        if ($editorImg.length) {
-                            editorImgSrc = addQueryArg($editorImg.attr('src'), 'ver', data.meta.focalVersion);
-                            $editorImg
-                                .attr('src', editorImgSrc)
-                                .attr('data-mce-src', editorImgSrc);
-                        }
-                    }
-                });
-                if (api.$spinner) {
-                    api.$spinner.removeClass('is-active');
+                if (api.id === data.id) {
+                    api.id = 0;
                 }
-                api.heartbeat = '';
-            }, 4000, data);
+
+                if (typeof tinymce !== 'undefined' && tinymce.activeEditor && data.meta) {
+                    $editorImg = tinymce.activeEditor.$('img[src^="' + data.url.replace(/\.[^.]+$/, '') + '"]');
+
+                    if ($editorImg.length) {
+                        editorImgSrc = addQueryArg($editorImg.attr('src'), 'ver', data.meta.focalVersion);
+                        $editorImg
+                            .attr('src', editorImgSrc)
+                            .attr('data-mce-src', editorImgSrc);
+                    }
+                }
+            });
+            if (api.$spinner) {
+                api.$spinner.removeClass('is-active');
+            }
+            api.heartbeat = '';
         }
     });
 
