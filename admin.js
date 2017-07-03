@@ -143,7 +143,6 @@
     $document.on('heartbeat-tick', function (event, data) {
         if (data.focal_processed && $.isArray(data.focal_processed)) {
             setTimeout(function (data) {
-                api.id = 0;
                 $.each(data.focal_processed, function (index, data) {
                     var $editorImg;
                     var editorImgSrc;
@@ -166,9 +165,9 @@
                         }
                     }
                 });
+                api.id = 0;
                 if (api.$spinner) {
                     api.$spinner.removeClass('is-active');
-                    api.$spinner = null;
                 }
             }, 250, data);
         }
