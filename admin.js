@@ -57,6 +57,7 @@
         var $selector = $('#focal-selector-' + id);
         var $previews = $('#focal-previews');
 
+        api.id = id;
         api.$spinner = $('#focal-spinner');
         api.$field = $('#attachments-' + id + '-focal-center');
         api.cursorPos = api.$field.val().split(',').map(function(i){return parseFloat(i);});
@@ -83,6 +84,10 @@
             })
         };
 
+        if (api.processing.indexOf(api.id) !== -1) {
+            api.$spinner.addClass('is-active');
+        }
+
         updateCursorPos(api.cursorPos[0], api.cursorPos[1]);
 
         $selector.on('mousedown', function (e) {
@@ -103,11 +108,13 @@
         });
     };
 
+    api.id = 0;
     api.dragging = false;
     api.saveTimer = null;
     api.$field = null;
     api.$spinner = null;
     api.cursorPos = [0, 0];
+    api.processing = [];
 
     $document.on('mouseup', function () {
         if(api.dragging) {
@@ -116,6 +123,9 @@
                 clearTimeout(api.saveTimer);
             }
             api.saveTimer = setTimeout(function() {
+                if (api.id && api.processing.indexOf(api.id) === -1) {
+                    api.processing.push(api.id);
+                }
                 if (api.$spinner) {
                     api.$spinner.addClass('is-active');
                 }
@@ -132,27 +142,35 @@
 
     $document.on('heartbeat-tick', function (event, data) {
         if (data.focal_processed && $.isArray(data.focal_processed)) {
-            $.each(data.focal_processed, function (index, data) {
-                var $editorImg;
-                var editorImgSrc;
+            setTimeout(function () {
+                api.id = 0;
+                $.each(data.focal_processed, function (index, data) {
+                    var $editorImg;
+                    var editorImgSrc;
+                    var processing = api.processing.indexOf(data.id);
 
-                wp.media.attachment(data.id).set(data);
+                    wp.media.attachment(data.id).set(data);
 
+                    if (processing !== -1) {
+                        api.processing.splice(processing, 1);
+                    }
+
+                    if (typeof tinymce !== 'undefined' && tinymce.activeEditor && data.meta) {
+                        $editorImg = tinymce.activeEditor.$('img[src^="' + data.url.replace(/\.[^.]+$/, '') + '"]');
+
+                        if ($editorImg.length) {
+                            editorImgSrc = addQueryArg($editorImg.attr('src'), 'ver', data.meta.focalVersion);
+                            $editorImg
+                                .attr('src', editorImgSrc)
+                                .attr('data-mce-src', editorImgSrc);
+                        }
+                    }
+                });
                 if (api.$spinner) {
                     api.$spinner.removeClass('is-active');
+                    api.$spinner = null;
                 }
-
-                if (typeof tinymce !== 'undefined' && tinymce.activeEditor && data.meta) {
-                    $editorImg = tinymce.activeEditor.$('img[src^="' + data.url.replace(/\.[^.]+$/, '') + '"]');
-
-                    if ($editorImg.length) {
-                        editorImgSrc = addQueryArg($editorImg.attr('src'), 'ver', data.meta.focalVersion);
-                        $editorImg
-                            .attr('src', editorImgSrc)
-                            .attr('data-mce-src', editorImgSrc);
-                    }
-                }
-            });
+            }, 250);
         }
     });
 
