@@ -115,6 +115,7 @@
     api.$spinner = null;
     api.cursorPos = [0, 0];
     api.processing = [];
+    api.heartbeat = '';
 
     $document.on('mouseup', function () {
         if(api.dragging) {
@@ -133,10 +134,14 @@
                     api.$field.val(api.cursorPos.join(',')).change();
                 }
                 wp.heartbeat.interval('fast');
-                $document.one('heartbeat-send', function (event, data) {
-                    data.focal_point = 'refresh';
-                });
+                api.heartbeat = 'refresh';
             }, 800);
+        }
+    });
+
+    $document.one('heartbeat-send', function (event, data) {
+        if (api.heartbeat !== '') {
+            data.focal_point = api.heartbeat;
         }
     });
 
@@ -169,6 +174,7 @@
                 if (api.$spinner) {
                     api.$spinner.removeClass('is-active');
                 }
+                api.heartbeat = '';
             }, 1000, data);
         }
     });
