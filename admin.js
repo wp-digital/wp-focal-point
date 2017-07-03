@@ -169,7 +169,7 @@
                 if (api.$spinner) {
                     api.$spinner.removeClass('is-active');
                 }
-            }, 250, data);
+            }, 1000, data);
         }
     });
 
