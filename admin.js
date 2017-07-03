@@ -139,7 +139,7 @@
         }
     });
 
-    $document.one('heartbeat-send', function (event, data) {
+    $document.on('heartbeat-send', function (event, data) {
         if (api.heartbeat !== '') {
             data.focal_point = api.heartbeat;
         }
