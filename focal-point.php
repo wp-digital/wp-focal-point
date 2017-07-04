@@ -2,8 +2,7 @@
 /**
  * Plugin Name: Thumbnails Focal Point
  */
-
-define( 'FOCAL_POINT_VERSION', '2.0.10' );
+define( 'FOCAL_POINT_VERSION', '2.0.11' );
 
 add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
     if ( empty( $form_fields ) ) {
@@ -284,12 +283,14 @@ add_filter( 'heartbeat_received', function ( $response, $data ) {
     if ( isset( $data['focal_point'] ) && is_array( $data['focal_point'] ) ) {
         $processed = [];
 
-        foreach ( $data['focal_point'] as $id => $version ) {
-            if ( !isset( $processed[ $id ] ) ) {
-                $_version = get_post_meta( $id, '_version', true );
+        foreach ( $data['focal_point'] as $attachment_id => $version ) {
+            if ( !isset( $processed[ $attachment_id ] ) ) {
+                $_version = get_post_meta( $attachment_id, '_version', true );
+                $center = get_post_meta( $attachment_id, 'focal-center', true );
+                $prev_center = get_post_meta( $attachment_id, 'focal-center-prev', true );
 
-                if ( $_version > $version ) {
-                    $processed[ $id ] = wp_prepare_attachment_for_js( $id );
+                if ( $prev_center && $prev_center == $center && $_version > $version ) {
+                    $processed[ $attachment_id ] = wp_prepare_attachment_for_js( $attachment_id );
                 }
             }
         }
