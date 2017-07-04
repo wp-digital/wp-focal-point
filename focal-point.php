@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Thumbnails Focal Point
  */
-define( 'FOCAL_POINT_VERSION', '2.0.14' );
+define( 'FOCAL_POINT_VERSION', '2.0.15' );
 
 function focal_get_image_size_crop( $size ) {
     if ( is_array( $size ) ) {
@@ -331,7 +331,7 @@ add_filter( 'heartbeat_received', function ( $response, $data ) {
             $response['focal_processed'] = array_values( $processed );
 
             if ( count( $data['focal_point'] ) == count( $processed ) ) {
-                $response['heartbeat_interval'] = 'slow';
+                $response['heartbeat_interval'] = 60;
             }
         }
     }

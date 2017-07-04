@@ -144,7 +144,7 @@
                 }
 
                 api.queue[id] = wp.media.attachment(id).get('meta').focalVersion;
-                wp.heartbeat.interval('fast');
+                wp.heartbeat.interval(15);
             }.bind(null, id), 800);
         }
     });
