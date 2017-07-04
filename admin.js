@@ -162,7 +162,12 @@
             $.each(data.focal_processed, function (index, data) {
                 var $editorImg;
                 var editorImgSrc;
+                var t = Date.now();
 
+                data.url = addQueryArg(data.url, 't', t);
+                $.each(data.sizes, function (size, image) {
+                    data.sizes[size].url = addQueryArg(image.url, 't', t);
+                });
                 wp.media.attachment(data.id).set(data);
                 delete api.queue[data.id];
 
@@ -171,6 +176,7 @@
 
                     if ($editorImg.length) {
                         editorImgSrc = addQueryArg($editorImg.attr('src'), 'ver', data.meta.focalVersion);
+                        editorImgSrc = addQueryArg(editorImgSrc, 't', t);
                         $editorImg
                             .attr('src', editorImgSrc)
                             .attr('data-mce-src', editorImgSrc);

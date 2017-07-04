@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Thumbnails Focal Point
  */
-define( 'FOCAL_POINT_VERSION', '2.0.11' );
+define( 'FOCAL_POINT_VERSION', '2.0.12' );
 
 add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
     if ( empty( $form_fields ) ) {
