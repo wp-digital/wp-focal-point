@@ -72,8 +72,6 @@
 
         if (api.queue.hasOwnProperty(id)) {
             api.$spinner.addClass('is-active');
-        } else {
-            api.queue[id] = wp.media.attachment(id).get('meta').focalVersion;
         }
 
         api.$field = $('#attachments-' + id + '-focal-center');

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Thumbnails Focal Point
  */
-define( 'FOCAL_POINT_VERSION', '2.0.13' );
+define( 'FOCAL_POINT_VERSION', '2.0.14' );
 
 function focal_get_image_size_crop( $size ) {
     if ( is_array( $size ) ) {
