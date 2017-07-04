@@ -2,7 +2,37 @@
 /**
  * Plugin Name: Thumbnails Focal Point
  */
-define( 'FOCAL_POINT_VERSION', '2.0.12' );
+define( 'FOCAL_POINT_VERSION', '2.0.13' );
+
+function focal_get_image_size_crop( $size ) {
+    if ( is_array( $size ) ) {
+        return true; //todo: implement size array to string
+    }
+
+    global $_wp_additional_image_sizes;
+
+    if ( in_array( $size, [ 'thumbnail', 'medium', 'medium_large', 'large' ] ) ) {
+        return (bool) get_option( "{$size}_crop" );
+    }
+
+    if ( isset( $_wp_additional_image_sizes[ $size ] ) ) {
+        return $_wp_additional_image_sizes[ $size ]['crop'];
+    }
+
+    return false;
+}
+
+function focal_get_file_etag( $url ) {
+    $response = wp_remote_get( $url, [
+        'sslverify' => false,
+    ] );
+
+    if ( is_wp_error( $response ) ) {
+        return '';
+    }
+
+    return wp_remote_retrieve_header( $response, 'Etag' );
+}
 
 add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
     if ( empty( $form_fields ) ) {
@@ -52,6 +82,7 @@ add_action( 'admin_enqueue_scripts', function () {
 add_action( 'edit_attachment', function ( $attachment_id ) {
     if ( isset( $_REQUEST['attachments'] ) && isset( $_REQUEST['attachments'][ $attachment_id ] ) && isset( $_REQUEST['attachments'][ $attachment_id ]['focal-center'] ) ) {
         update_post_meta( $attachment_id, 'focal-center', $_REQUEST['attachments'][ $attachment_id ]['focal-center'] );
+        update_post_meta( $attachment_id, '_thumbnail_header_etag', focal_get_file_etag( wp_get_attachment_image_src( $attachment_id )[0] ) );
         delete_transient( 'doing_cron' );
         wp_schedule_single_event( time() - 1, 'attachment_crop', [ $attachment_id ] );
         spawn_cron();
@@ -66,12 +97,11 @@ add_filter( 'intermediate_image_sizes_advanced', function ( $sizes, $metadata ) 
     return $sizes;
 }, 10, 2 );
 
-
 add_action( 'attachment_crop', function ( $attachment_id ) {
     $center = get_post_meta( $attachment_id, 'focal-center', true );
     $prev_center = get_post_meta( $attachment_id, 'focal-center-prev', true );
 
-    if ( $prev_center && $prev_center == $center ) {
+    if ( $prev_center && $prev_center === $center ) {
         return;
     }
 
@@ -109,26 +139,6 @@ add_action( 'attachment_crop', function ( $attachment_id ) {
     update_post_meta( $attachment_id, '_version', time() );
 } );
 
-
-function focal_get_image_size_crop( $size ) {
-    if ( is_array( $size ) ) {
-        return true; //todo: implement size array to string
-    }
-
-    global $_wp_additional_image_sizes;
-
-    if ( in_array( $size, [ 'thumbnail', 'medium', 'medium_large', 'large' ] ) ) {
-        return (bool) get_option( "{$size}_crop" );
-    }
-
-    if ( isset( $_wp_additional_image_sizes[ $size ] ) ) {
-        return $_wp_additional_image_sizes[ $size ]['crop'];
-    }
-
-    return false;
-}
-
-
 add_filter( 'wp_get_attachment_image_src', function ( $image, $attachment_id, $size ) {
     if ( $image && focal_get_image_size_crop( $size ) && ( $version = get_post_meta( $attachment_id, '_version', true ) ) ) {
         $image[0] = add_query_arg( 'ver', $version, $image[0] );
@@ -146,7 +156,6 @@ add_filter( 'wp_calculate_image_srcset', function( $sources, $size_array, $image
 
     return $sources;
 }, 10, 5 );
-
 
 add_filter( 'image_resize_dimensions', function( $dimensions, $orig_w, $orig_h, $dest_w, $dest_h, $crop  ) {
     if ( !$crop ) {
@@ -194,7 +203,6 @@ add_filter( 'image_resize_dimensions', function( $dimensions, $orig_w, $orig_h, 
 
     return [ 0, 0, (int) $s_x, (int) $s_y, (int) $new_w, (int) $new_h, (int) $crop_w, (int) $crop_h ];
 }, 99, 6 );
-
 
 add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
     if( empty( $form_fields ) ) {
@@ -278,35 +286,6 @@ add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
     return $form_fields;
 }, 10, 2 );
 
-
-add_filter( 'heartbeat_received', function ( $response, $data ) {
-    if ( isset( $data['focal_point'] ) && is_array( $data['focal_point'] ) ) {
-        $processed = [];
-
-        foreach ( $data['focal_point'] as $attachment_id => $version ) {
-            if ( !isset( $processed[ $attachment_id ] ) ) {
-                $_version = get_post_meta( $attachment_id, '_version', true );
-                $center = get_post_meta( $attachment_id, 'focal-center', true );
-                $prev_center = get_post_meta( $attachment_id, 'focal-center-prev', true );
-
-                if ( $prev_center && $prev_center == $center && $_version > $version ) {
-                    $processed[ $attachment_id ] = wp_prepare_attachment_for_js( $attachment_id );
-                }
-            }
-        }
-
-        if ( !empty( $processed ) ) {
-            $response['focal_processed'] = array_values( $processed );
-
-            if ( count( $data['focal_point'] ) == count( $processed ) ) {
-                $response['heartbeat_interval'] = 'slow';
-            }
-        }
-    }
-
-    return $response;
-}, 10, 2 );
-
 add_filter( 'wp_prepare_attachment_for_js', function ( $response, $attachment, $meta ) {
     if ( false !== ( $version = get_post_meta( $attachment->ID, '_version', true ) ) ) {
         if ( $meta && isset( $response['type'] ) && $response['type'] == 'image' ) {
@@ -328,3 +307,34 @@ add_filter( 'wp_prepare_attachment_for_js', function ( $response, $attachment, $
 
     return $response;
 }, 10, 3 );
+
+add_filter( 'heartbeat_received', function ( $response, $data ) {
+    if ( isset( $data['focal_point'] ) && is_array( $data['focal_point'] ) ) {
+        $processed = [];
+
+        foreach ( $data['focal_point'] as $attachment_id => $version ) {
+            if ( !isset( $processed[ $attachment_id ] ) ) {
+                $_version = get_post_meta( $attachment_id, '_version', true );
+                $center = get_post_meta( $attachment_id, 'focal-center', true );
+                $prev_center = get_post_meta( $attachment_id, 'focal-center-prev', true );
+                $_etag = get_post_meta( $attachment_id, '_thumbnail_header_etag', true );
+                $etag = focal_get_file_etag( wp_get_attachment_image_src( $attachment_id )[0] );
+
+                if ( $prev_center && $prev_center === $center && $_version > $version && ( $_etag === '' || $_etag !== $etag ) ) {
+                    update_post_meta( $attachment_id, '_thumbnail_header_etag', $etag );
+                    $processed[ $attachment_id ] = wp_prepare_attachment_for_js( $attachment_id );
+                }
+            }
+        }
+
+        if ( !empty( $processed ) ) {
+            $response['focal_processed'] = array_values( $processed );
+
+            if ( count( $data['focal_point'] ) == count( $processed ) ) {
+                $response['heartbeat_interval'] = 'slow';
+            }
+        }
+    }
+
+    return $response;
+}, 10, 2 );
