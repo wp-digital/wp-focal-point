@@ -1,8 +1,16 @@
 <?php
 /**
  * Plugin Name: Thumbnails Focal Point
+ * Plugin URI: https://github.com/redink-no/wp-focal-point
+ * Version: 2.1.0
+ * Author: Innocode
+ * Author URI: https://innocode.no/
+ * Requires at least: 4.6
+ * Tested up to: 4.8
+ *
+ * Text Domain: focal-point
  */
-define( 'FOCAL_POINT_VERSION', '2.0.17' );
+define( 'FOCAL_POINT_VERSION', '2.1.0' );
 
 function focal_get_image_size_crop( $size ) {
     if ( is_array( $size ) ) {
@@ -55,7 +63,7 @@ add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
 
     $form_fields['focal-html'] = [
         'label' => '<span id="focal-spinner" class="spinner"></span>',
-        'helps' => sprintf( '<span id="focal-help-text" class="focal-help-text">%s</span>', __( 'Image is being updated in the background.', 'focal-point' ) ),
+        'helps' => sprintf( '<span id="focal-help-text" class="focal-help-text">%s</span>', __( 'Image is being updated in the background. There is no need to wait.', 'focal-point' ) ),
         'input' => 'html',
         'html'  => $html,
     ];
