@@ -25,21 +25,8 @@
         var sX = Math.floor(origW * centerX / 100.0 - cropW / 2.0);
         var sY = Math.floor(origH * centerY / 100.0 - cropH / 2.0);
 
-        if (sX < 0) {
-            sX = 0;
-        }
-
-        if (sY < 0) {
-            sY = 0;
-        }
-
-        if (sX > (origW - cropW)) {
-            sX = origW - cropW;
-        }
-
-        if (sY > (origH - cropH)) {
-            sY = origH - cropH;
-        }
+        sX = Math.min(Math.max(sX, 0), origW - cropW);
+        sY = Math.min(Math.max(sY, 0), origH - cropH);
 
         return [sX, sY];
     };
@@ -69,9 +56,10 @@
         var $previews = $('#focal-previews');
 
         api.$spinner = $('#focal-spinner');
+        api.$helpText = $('#focal-help-text');
 
         if (api.queue.hasOwnProperty(id)) {
-            api.$spinner.addClass('is-active');
+            api.loader(true);
         }
 
         api.$field = $('#attachments-' + id + '-focal-center');
@@ -120,72 +108,106 @@
     api.saveTimer = null;
     api.$field = null;
     api.$spinner = null;
+    api.$helpText = null;
     api.cursorPos = [0, 0];
     api.queue = {};
+    api.ticks = 0;
+    api.loader = function (isActive) {
+        var action = isActive ? 'addClass' : 'removeClass';
 
-    $document.on('mouseup', function () {
-        var id;
+        if (this.$spinner !== null) {
+            this.$spinner[action]('is-active');
+        }
 
-        if (api.id) {
-            id = api.id;
-            api.id = 0;
+        if (this.$helpText !== null) {
+            this.$helpText[action]('is-active');
+        }
+    };
+    api.save = function () {
+        if (window.localStorage) {
+            window.localStorage.setItem('focal-queue', JSON.stringify(api.queue));
+        }
+    };
 
-            if (api.saveTimer !== null) {
-                clearTimeout(api.saveTimer);
+    $(function () {
+        var queue = null;
+
+        if (window.localStorage) {
+            queue = window.localStorage.getItem('focal-queue');
+
+            if (queue !== null) {
+                api.queue = JSON.parse(queue);
             }
+        }
 
-            api.saveTimer = setTimeout(function (id) {
-                if (api.$spinner !== null) {
-                    api.$spinner.addClass('is-active');
+        $document.on('mouseup', function () {
+            var id;
+
+            if (api.id) {
+                id = api.id;
+                api.id = 0;
+
+                if (api.saveTimer !== null) {
+                    clearTimeout(api.saveTimer);
                 }
 
-                if (api.$field !== null) {
-                    api.$field.val(api.cursorPos.join(',')).change();
-                }
+                api.saveTimer = setTimeout(function (id) {
+                    api.loader(true);
 
-                api.queue[id] = wp.media.attachment(id).get('meta').focalVersion;
-                wp.heartbeat.interval(15);
-            }.bind(null, id), 800);
-        }
-    });
-
-    $document.on('heartbeat-send', function (event, data) {
-        if (!$.isEmptyObject(api.queue)) {
-            data.focal_point = $.extend({}, api.queue);
-        }
-    });
-
-    $document.on('heartbeat-tick', function (event, data) {
-        if (data.focal_processed && $.isArray(data.focal_processed)) {
-            $.each(data.focal_processed, function (index, data) {
-                var $editorImg;
-                var editorImgSrc;
-                var t = Date.now();
-
-                data.url = addQueryArg(data.url, 't', t);
-                $.each(data.sizes, function (size, image) {
-                    data.sizes[size].url = addQueryArg(image.url, 't', t);
-                });
-                wp.media.attachment(data.id).set(data);
-                delete api.queue[data.id];
-
-                if (typeof tinymce !== 'undefined' && tinymce.activeEditor && data.meta) {
-                    $editorImg = tinymce.activeEditor.$('img[src^="' + data.url.replace(/\.[^.]+$/, '') + '"]');
-
-                    if ($editorImg.length) {
-                        editorImgSrc = addQueryArg($editorImg.attr('src'), 'ver', data.meta.focalVersion);
-                        editorImgSrc = addQueryArg(editorImgSrc, 't', t);
-                        $editorImg
-                            .attr('src', editorImgSrc)
-                            .attr('data-mce-src', editorImgSrc);
+                    if (api.$field !== null) {
+                        api.$field.val(api.cursorPos.join(',')).change();
                     }
-                }
-            });
 
-            if (api.$spinner !== null) {
-                api.$spinner.removeClass('is-active');
+                    api.queue[id] = wp.media.attachment(id).get('meta').focalVersion;
+                    api.save();
+                    wp.heartbeat.interval(5);
+                }.bind(null, id), 800);
             }
-        }
+        });
+
+        $document.on('heartbeat-send', function (event, data) {
+            if (!$.isEmptyObject(api.queue)) {
+                data.focal_point = $.extend({}, api.queue);
+                api.ticks += 1;
+
+                if (api.ticks > 5) {
+                    wp.heartbeat.interval(15);
+                }
+            }
+        });
+
+        $document.on('heartbeat-tick', function (event, data) {
+            if (data.focal_processed && $.isArray(data.focal_processed)) {
+                $.each(data.focal_processed, function (index, data) {
+                    var $editorImg;
+                    var editorImgSrc;
+                    var t = Date.now();
+
+                    data.url = addQueryArg(data.url, 't', t);
+                    $.each(data.sizes, function (size, image) {
+                        data.sizes[size].url = addQueryArg(image.url, 't', t);
+                    });
+                    wp.media.attachment(data.id).set(data);
+                    delete api.queue[data.id];
+                    api.save();
+
+                    if (typeof tinymce !== 'undefined' && tinymce.activeEditor && data.meta) {
+                        $editorImg = tinymce.activeEditor.$('img[src^="' + data.url.replace(/\.[^.]+$/, '') + '"]');
+
+                        if ($editorImg.length) {
+                            editorImgSrc = addQueryArg($editorImg.attr('src'), 'ver', data.meta.focalVersion);
+                            editorImgSrc = addQueryArg(editorImgSrc, 't', t);
+                            $editorImg
+                                .attr('src', editorImgSrc)
+                                .attr('data-mce-src', editorImgSrc);
+                        }
+                    }
+                });
+
+                api.loader(false);
+                api.ticks = 0;
+            }
+        });
     });
 
     window.wp.media.attachment.focalPoint = api;

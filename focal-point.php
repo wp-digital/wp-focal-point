@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Thumbnails Focal Point
  */
-define( 'FOCAL_POINT_VERSION', '2.0.15' );
+define( 'FOCAL_POINT_VERSION', '2.0.16' );
 
 function focal_get_image_size_crop( $size ) {
     if ( is_array( $size ) ) {
@@ -55,8 +55,9 @@ add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
 
     $form_fields['focal-html'] = [
         'label' => '<span id="focal-spinner" class="spinner"></span>',
+        'helps' => sprintf( '<span id="focal-help-text" class="focal-help-text">%s</span>', __( 'Image is being updated in the background.', 'focal-point' ) ),
         'input' => 'html',
-        'html' => $html,
+        'html'  => $html,
     ];
 
     $center = get_post_meta( $post->ID, 'focal-center', true );
@@ -84,7 +85,7 @@ add_action( 'edit_attachment', function ( $attachment_id ) {
         update_post_meta( $attachment_id, 'focal-center', $_REQUEST['attachments'][ $attachment_id ]['focal-center'] );
         update_post_meta( $attachment_id, '_thumbnail_header_etag', focal_get_file_etag( wp_get_attachment_image_src( $attachment_id )[0] ) );
         delete_transient( 'doing_cron' );
-        wp_schedule_single_event( time() - 1, 'attachment_crop', [ $attachment_id ] );
+        wp_schedule_single_event( time(), 'attachment_crop', [ $attachment_id ] );
         spawn_cron();
     }
 } );

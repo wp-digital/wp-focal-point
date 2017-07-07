@@ -86,3 +86,11 @@
     -webkit-user-select: none;
     -ms-user-select: none;
 }
+
+.focal-help-text {
+    display: none;
+}
+
+span.focal-help-text.is-active {
+    display: inline;
+}
