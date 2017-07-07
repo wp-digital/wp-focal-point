@@ -112,6 +112,7 @@
     api.cursorPos = [0, 0];
     api.queue = {};
     api.ticks = 0;
+    api.adminNotice = wp.template('wp-updates-admin-notice');
     api.loader = function (isActive) {
         var action = isActive ? 'addClass' : 'removeClass';
 
@@ -128,9 +129,34 @@
             window.localStorage.setItem('focal-queue', JSON.stringify(api.queue));
         }
     };
+    api.addAdminNotice = function (data) {
+        var $notice;
+        var $adminNotice;
+
+        if (document.getElementById('tmpl-wp-updates-admin-notice') !== null) {
+            $notice = $(data.selector);
+            delete data.selector;
+            $adminNotice = api.adminNotice(data);
+
+            if (!$notice.length) {
+                $notice = $('#' + data.id);
+            }
+
+            if ($notice.length) {
+                $notice.replaceWith($adminNotice);
+            } else {
+                $('.wrap')
+                    .find('> h1')
+                    .nextAll('.wp-header-end')
+                    .after($adminNotice);
+            }
+
+            $document.trigger('wp-updates-notice-added');
+        }
+    };
 
     $(function () {
-        var queue = null;
+        var queue;
 
         if (window.localStorage) {
             queue = window.localStorage.getItem('focal-queue');
@@ -152,13 +178,16 @@
                 }
 
                 api.saveTimer = setTimeout(function (id) {
+                    var attachment = wp.media.attachment(id);
+                    var meta = attachment.get('meta');
+
                     api.loader(true);
 
                     if (api.$field !== null) {
                         api.$field.val(api.cursorPos.join(',')).change();
                     }
 
-                    api.queue[id] = wp.media.attachment(id).get('meta').focalVersion;
+                    api.queue[id] = meta ? meta.focalVersion : 0;
                     api.save();
                     wp.heartbeat.interval(5);
                 }.bind(null, id), 800);
@@ -177,8 +206,11 @@
         });
 
         $document.on('heartbeat-tick', function (event, data) {
+            var names = [];
+
             if (data.focal_processed && $.isArray(data.focal_processed)) {
                 $.each(data.focal_processed, function (index, data) {
+                    var attachment;
                     var $editorImg;
                     var editorImgSrc;
                     var t = Date.now();
@@ -187,7 +219,9 @@
                     $.each(data.sizes, function (size, image) {
                         data.sizes[size].url = addQueryArg(image.url, 't', t);
                     });
-                    wp.media.attachment(data.id).set(data);
+                    attachment = wp.media.attachment(data.id);
+                    attachment.set(data);
+                    names.push('<strong>' + attachment.get('name') + '</strong>');
                     delete api.queue[data.id];
                     api.save();
 
@@ -206,6 +240,14 @@
 
                 api.loader(false);
                 api.ticks = 0;
+
+                if (names.length) {
+                    api.addAdminNotice({
+                        id: 'focal-processed',
+                        className: 'notice-success is-dismissible',
+                        message: focalPointL10n.processed.replace('%s', names.join(', '))
+                    });
+                }
             }
         });
     });

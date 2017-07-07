@@ -2,11 +2,11 @@
 /**
  * Plugin Name: Thumbnails Focal Point
  */
-define( 'FOCAL_POINT_VERSION', '2.0.16' );
+define( 'FOCAL_POINT_VERSION', '2.0.17' );
 
 function focal_get_image_size_crop( $size ) {
     if ( is_array( $size ) ) {
-        return true; //todo: implement size array to string
+        return true; // @TODO: implement size array to string
     }
 
     global $_wp_additional_image_sizes;
@@ -76,8 +76,28 @@ add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
 }, 10, 2 );
 
 add_action( 'admin_enqueue_scripts', function () {
-    wp_enqueue_script( 'focal-point-admin-js', plugin_dir_url( __FILE__ ) . '/admin.js', [ 'jquery' ], FOCAL_POINT_VERSION, true );
+    wp_enqueue_media();
+    wp_enqueue_script( 'focal-point-admin-js', plugin_dir_url( __FILE__ ) . '/admin.js', [
+        'jquery',
+        'wp-util',
+    ], FOCAL_POINT_VERSION, true );
+    wp_localize_script( 'focal-point-admin-js', 'focalPointL10n', [
+        'processed' => __( 'Focal point is set! %s were successfully processed.', 'focal-point' ),
+    ] );
     wp_enqueue_style( 'focal-point-admin-css', plugin_dir_url( __FILE__ ) . '/admin.css', FOCAL_POINT_VERSION );
+} );
+
+add_action( 'admin_init', function () {
+    foreach ( apply_filters( 'focal_admin_notices_screens', [
+        'post.php',
+        'post-new.php',
+        'upload.php',
+        'media-new.php',
+    ] ) as $hook_suffix ) {
+        add_action( "admin_footer-$hook_suffix", function () {
+            wp_print_admin_notice_templates();
+        } );
+    }
 } );
 
 add_action( 'edit_attachment', function ( $attachment_id ) {
