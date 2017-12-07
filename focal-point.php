@@ -111,7 +111,7 @@ add_action( 'admin_init', function () {
 add_action( 'edit_attachment', function ( $attachment_id ) {
     if ( isset( $_REQUEST['attachments'] ) && isset( $_REQUEST['attachments'][ $attachment_id ] ) && isset( $_REQUEST['attachments'][ $attachment_id ]['focal-center'] ) ) {
         update_post_meta( $attachment_id, 'focal-center', $_REQUEST['attachments'][ $attachment_id ]['focal-center'] );
-        update_post_meta( $attachment_id, '_thumbnail_header_etag', focal_get_file_etag( wp_get_attachment_image_src( $attachment_id )[0] ) );
+        update_post_meta( $attachment_id, '_thumbnail_header_etag', focal_get_file_etag( wp_get_attachment_image_src( $attachment_id, '' )[0] ) );
         delete_transient( 'doing_cron' );
         wp_schedule_single_event( time(), 'attachment_crop', [ $attachment_id ] );
         spawn_cron();
