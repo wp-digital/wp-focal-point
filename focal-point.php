@@ -30,18 +30,6 @@ function focal_get_image_size_crop( $size ) {
     return false;
 }
 
-function focal_get_file_etag( $url ) {
-    $response = wp_remote_get( $url, [
-        'sslverify' => false,
-    ] );
-
-    if ( is_wp_error( $response ) ) {
-        return '';
-    }
-
-    return wp_remote_retrieve_header( $response, 'Etag' );
-}
-
 add_filter( 'attachment_fields_to_edit', function( $form_fields, $post ) {
     if ( empty( $form_fields ) ) {
         $form_fields = [];
@@ -111,7 +99,6 @@ add_action( 'admin_init', function () {
 add_action( 'edit_attachment', function ( $attachment_id ) {
     if ( isset( $_REQUEST['attachments'] ) && isset( $_REQUEST['attachments'][ $attachment_id ] ) && isset( $_REQUEST['attachments'][ $attachment_id ]['focal-center'] ) ) {
         update_post_meta( $attachment_id, 'focal-center', $_REQUEST['attachments'][ $attachment_id ]['focal-center'] );
-        update_post_meta( $attachment_id, '_thumbnail_header_etag', focal_get_file_etag( wp_get_attachment_image_src( $attachment_id, '' )[0] ) );
         delete_transient( 'doing_cron' );
         wp_schedule_single_event( time(), 'attachment_crop', [ $attachment_id ] );
         spawn_cron();
@@ -346,11 +333,8 @@ add_filter( 'heartbeat_received', function ( $response, $data ) {
                 $_version = get_post_meta( $attachment_id, '_version', true );
                 $center = get_post_meta( $attachment_id, 'focal-center', true );
                 $prev_center = get_post_meta( $attachment_id, 'focal-center-prev', true );
-                $_etag = get_post_meta( $attachment_id, '_thumbnail_header_etag', true );
-                $etag = focal_get_file_etag( wp_get_attachment_image_src( $attachment_id, '' )[0] );
 
-                if ( $prev_center && $prev_center === $center && $_version > $version && ( $_etag === '' || $_etag !== $etag ) ) {
-                    update_post_meta( $attachment_id, '_thumbnail_header_etag', $etag );
+                if ( $prev_center && $prev_center === $center && $_version > $version ) {
                     $processed[ $attachment_id ] = wp_prepare_attachment_for_js( $attachment_id );
                 }
             }
