@@ -347,7 +347,7 @@ add_filter( 'heartbeat_received', function ( $response, $data ) {
                 $center = get_post_meta( $attachment_id, 'focal-center', true );
                 $prev_center = get_post_meta( $attachment_id, 'focal-center-prev', true );
                 $_etag = get_post_meta( $attachment_id, '_thumbnail_header_etag', true );
-                $etag = focal_get_file_etag( add_query_arg( 'ver', $version, wp_get_attachment_image_src( $attachment_id )[0] ) );
+                $etag = focal_get_file_etag( wp_get_attachment_image_src( $attachment_id, '' )[0] );
 
                 if ( $prev_center && $prev_center === $center && $_version > $version && ( $_etag === '' || $_etag !== $etag ) ) {
                     update_post_meta( $attachment_id, '_thumbnail_header_etag', $etag );
