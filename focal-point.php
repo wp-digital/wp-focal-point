@@ -308,10 +308,6 @@ add_filter( 'wp_prepare_attachment_for_js', function ( $response, $attachment, $
             $response['meta']['focalVersion'] = intval( $version );
         }
 
-        if ( isset( $response['url'] ) ) {
-            $response['url'] = add_query_arg( 'ver', $version, $response['url'] );
-        }
-
         if ( isset( $response['sizes'] ) && is_array( $response['sizes'] ) ) {
             foreach ( $response['sizes'] as $size => $image ) {
                 if ( focal_get_image_size_crop( $size ) ) {
