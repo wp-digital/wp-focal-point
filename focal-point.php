@@ -2,15 +2,15 @@
 /**
  * Plugin Name: Thumbnails Focal Point
  * Plugin URI: https://github.com/redink-no/wp-focal-point
- * Version: 2.1.0
+ * Version: 2.2.0
  * Author: Innocode
  * Author URI: https://innocode.no/
  * Requires at least: 4.6
- * Tested up to: 4.8
+ * Tested up to: 4.9.6
  *
  * Text Domain: focal-point
  */
-define( 'FOCAL_POINT_VERSION', '2.1.0' );
+define( 'FOCAL_POINT_VERSION', '2.2.0' );
 
 function focal_get_image_size_crop( $size ) {
     if ( is_array( $size ) ) {
@@ -346,4 +346,12 @@ add_filter( 'heartbeat_received', function ( $response, $data ) {
     }
 
     return $response;
+}, 10, 2 );
+
+add_filter( 'attachment_url_to_postid', function ( $post_id, $url ) {
+    if ( is_null( $post_id ) && ( $_url = remove_query_arg( 'ver', $url ) ) != $url ) {
+        return attachment_url_to_postid( $_url );
+    }
+
+    return $post_id;
 }, 10, 2 );
