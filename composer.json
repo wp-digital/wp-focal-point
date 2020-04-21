@@ -1,6 +1,6 @@
 {
   "name": "innocode-digital/wp-focal-point",
-  "version": "1.0.0",
+  "version": "2.2.0",
   "type": "wordpress-plugin",
   "license": "GPL-2.0+",
   "require": {

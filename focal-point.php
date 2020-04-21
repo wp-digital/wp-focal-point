@@ -6,7 +6,7 @@
  * Author: Innocode
  * Author URI: https://innocode.no/
  * Requires at least: 4.6
- * Tested up to: 4.9.6
+ * Tested up to: 5.4
  *
  * Text Domain: focal-point
  */
