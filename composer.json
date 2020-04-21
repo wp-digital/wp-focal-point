@@ -1,0 +1,11 @@
+{
+  "name": "innocode-digital/wp-focal-point",
+  "version": "1.0.0",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0+",
+  "require": {
+    "php": ">=5.6.*",
+    "composer/installers": "~1.0"
+  },
+  "description": "Adds focal point for images."
+}
